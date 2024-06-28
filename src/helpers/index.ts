@@ -1,6 +1,9 @@
+import { GoAlert } from './schema';
+
 export async function fetchGOAlerts() {
 	const response = await fetch('https://api.gotransit.com/v2/serviceupdate/en/all');
-	return response.json();
+	const data: GoAlert = await response.json();
+	return data;
 }
 
 function decodeHTMLEntities(text: string) {
