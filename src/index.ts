@@ -1,5 +1,5 @@
-import { extractContentFromHTML, fetchGOAlerts } from './helpers';
-import { GoAlertSchema } from './helpers/schema';
+import { extractContentFromHTML, fetchGOAlerts, removeKeysFromObject } from './helpers';
+import { GoAlertSchema, type GoAlert } from './helpers/schema';
 import { safeParse } from 'valibot';
 
 // how we know there's been an update
@@ -7,15 +7,16 @@ import { safeParse } from 'valibot';
 // 2. if it's different, then there's been an update
 // 3. gather all of the alerts from the different services
 // 4. filter out the services that have no alerts
-// 5. check the notification content to see if it has changed
-// 6. if not, then there's no update
-// 7. if it has, then send the update to threads and update the cache
+// 5. check the saag notification length and content
+// 6. if there are changes, then send the update to threads and update the cache
+// 7. if not, exit
 
 export default {
 	async scheduled(_, env, __): Promise<void> {
 		try {
 			const alerts = await fetchGOAlerts();
-			const result = safeParse(GoAlertSchema, alerts);
+			const modifiedAlerts = removeKeysFromObject(['TrainAnnouncements', 'BusAnnouncements'], alerts) as GoAlert;
+			const result = safeParse(GoAlertSchema, modifiedAlerts);
 			if (!result.success) {
 				console.log('unexpected response from api, exiting');
 				return;
@@ -26,8 +27,9 @@ export default {
 				return;
 			}
 
-			const mergedGoAlerts = [...alerts.Buses.Bus, ...alerts.Stations.Station, ...alerts.Trains.Train];
-			console.log(mergedGoAlerts.filter((service) => service.Notifications.Noficiation.length !== 0));
+			const trainRoutesWithNotifications = modifiedAlerts.Trains.Train.filter(
+				(train) => train?.SaagNotifications.SaagNoficiation && train?.SaagNotifications?.SaagNoficiation.length > 0
+			);
 		} catch (error) {
 			console.error('unhandled error', error);
 		}

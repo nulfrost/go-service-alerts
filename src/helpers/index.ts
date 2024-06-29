@@ -19,6 +19,10 @@ function decodeHTMLEntities(text: string) {
 	return text.replace(/&[a-zA-Z0-9#]+;/g, (match) => entities[match] || match);
 }
 
+export function removeKeysFromObject(keys: string[], object: Record<string, any>) {
+	return Object.fromEntries(Object.entries(object).filter(([key]) => !keys.includes(key)));
+}
+
 export function extractContentFromHTML(html: string) {
 	return decodeHTMLEntities(
 		html
